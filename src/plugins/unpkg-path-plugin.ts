@@ -10,7 +10,12 @@ export const unpkgPathPlugin = () => {
         if (args.path === "index.js") {
           return { path: args.path, namespace: "a" };
         }
-        return { path: `https://unpkg.com/${args.path}`, namespace: "a" };
+
+        if(args.path.includes('./') || args.path.includes('../')) {
+          return { path: new URL(args.path, args.importer + '/').href, namespace: "a" };
+        }
+
+        else return { path: `https://unpkg.com/${args.path}`, namespace: "a" };
       });
 
       build.onLoad({ filter: /.*/ }, async (args: any) => {
@@ -20,17 +25,19 @@ export const unpkgPathPlugin = () => {
           return {
             loader: "jsx",
             contents: `
-              import message from 'tiny-test-pkg';
+              const message = require('medium-test-pkg');
               console.log(message);
             `,
           };
+        } else {
+          const { data } = await axios.get(args.path);
+          // console.log(data);
+          return {
+            loader: 'jsx',
+            contents: data
+          }
         }
 
-        const res = await axios(args.path);
-        return {
-          loader: "jsx",
-          contents: res.data,
-        };
       });
     },
   };
